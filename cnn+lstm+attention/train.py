@@ -53,6 +53,8 @@ torch.manual_seed(opt.manualSeed)
 
 cudnn.benchmark = True
 
+torch.cuda.set_device(0)
+
 transform = None
 train_dataset = dataset.listDataset(list_file =opt.trainList, transform=transform)
 assert train_dataset
@@ -170,7 +172,7 @@ def val(encoder, decoder, criterion, batchsize, dataset, teach_forcing=False, ma
             if pred == target:
                 n_correct += 1
 
-        if i % 1 == 0:                 # 每100次输出一次
+        if i % 4 == 0:                 # 每100次输出一次
             texts = cpu_texts[0]
             print('pred:%-20s, gt: %-20s' % (decoded_words, texts))
 
