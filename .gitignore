@@ -1,0 +1,10 @@
+.DS_Store
+*.pyc
+*.pyo
+*.log
+*.tmp
+.idea/
+.vscode/
+
+dataset/
+*.pth

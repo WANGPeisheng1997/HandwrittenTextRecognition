@@ -1,0 +1,10 @@
+dataset/test/0.png 934557
+dataset/test/1.png 16908826
+dataset/test/2.png 55255
+dataset/test/3.png 25
+dataset/test/4.png 61
+dataset/test/5.png 38824
+dataset/test/6.png 12900
+dataset/test/7.png 52896027
+dataset/test/8.png 4487
+dataset/test/9.png 289
