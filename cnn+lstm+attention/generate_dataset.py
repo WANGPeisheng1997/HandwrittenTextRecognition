@@ -2,8 +2,8 @@ import scipy.io
 import os, random
 import numpy as np
 
-train_set_size = 100
-test_set_size = 10
+train_set_size = 3200
+test_set_size = 64
 
 characters = os.listdir('character')
 chars = [] # the gt char of each image

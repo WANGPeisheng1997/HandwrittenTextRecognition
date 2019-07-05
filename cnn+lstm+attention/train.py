@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--trainList',  default='label/train_label.txt')
 parser.add_argument('--valList',  default='label/test_label.txt')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
-parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
 parser.add_argument('--epochs', type=int, default=451, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate for Critic, default=0.00005')
 
