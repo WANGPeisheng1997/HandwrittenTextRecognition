@@ -3,7 +3,7 @@ import os, random
 import numpy as np
 from PIL import Image
 
-train_set_size = 100
+train_set_size = 6400
 val_set_size = 64
 test_set_size = 1600
 
@@ -56,5 +56,5 @@ def data_generation(phase, size):
 
 
 data_generation('train', train_set_size)
-# data_generation('val', val_set_size)
-# data_generation('test', test_set_size)
+data_generation('val', val_set_size)
+data_generation('test', test_set_size)
