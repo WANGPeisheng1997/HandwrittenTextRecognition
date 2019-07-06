@@ -54,7 +54,13 @@ converter = src.utils.strLabelConverterForAttention(alphabet)
 transformer = src.dataset.resizeNormalize((opt.width, opt.height))
 
 image = Image.open(img_path).convert('L')
-image = transformer(image)
+w = image.size[0]
+h = image.size[1]
+image = image.resize(int(w/h*32.0), 32)
+background = Image.new('L', size=(opt.width, opt.height), color='white')
+background.paste(image, (0,0))
+background.show()
+image = transformer(background)
 
 if opt.cuda:
     encoder.cuda()
