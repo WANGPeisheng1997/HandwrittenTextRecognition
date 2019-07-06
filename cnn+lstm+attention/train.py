@@ -16,24 +16,26 @@ import model
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainList',  default='label/train_label.txt')
-parser.add_argument('--valList',  default='label/test_label.txt')
+parser.add_argument('--valList',  default='label/validate_label.txt')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
-parser.add_argument('--epochs', type=int, default=451, help='number of epochs to train for')
+parser.add_argument('--epochs', type=int, default=501, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate for Critic, default=0.00005')
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda', default=True)
-parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
+parser.add_argument('--gpuid', type=int, default=0, help='which GPU to use')
 
 parser.add_argument('--height', type=int, default=32, help='the height of the input image to network')
 parser.add_argument('--width', type=int, default=208, help='the width of the input image to network')
 
 parser.add_argument('--encoder', type=str, default='', help="path to encoder (to continue training)")
 parser.add_argument('--decoder', type=str, default='', help='path to decoder (to continue training)')
+parser.add_argument('--loadModelEpoch', type=int, default=0, help='load model from epoch n to continue training, override the previous two')
 parser.add_argument('--savePath', default='model', help='Where to store samples and models')
 
 parser.add_argument('--displayInterval', type=int, default=10, help='batch(s) between display')
-parser.add_argument('--valInterval', type=int, default=1, help='Interval to be displayed')
+parser.add_argument('--valInterval', type=int, default=1, help='epoch(s) between validations')
+parser.add_argument('--valDisplayInterval', type=int, default=8, help='validation display interval(images)')
 parser.add_argument('--saveInterval', type=int, default=10, help='epoch(s) between model savings')
 
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
@@ -53,7 +55,8 @@ torch.manual_seed(opt.manualSeed)
 
 cudnn.benchmark = True
 
-torch.cuda.set_device(0)
+if opt.cuda:
+    torch.cuda.set_device(opt.gpuid)
 
 transform = None
 train_dataset = dataset.listDataset(list_file =opt.trainList, transform=transform)
@@ -68,7 +71,7 @@ train_loader = torch.utils.data.DataLoader(
     num_workers=int(opt.workers),
     collate_fn=dataset.alignCollate(height=opt.height, width=opt.width, keep_ratio=opt.keep_ratio))
 
-test_dataset = dataset.listDataset(list_file=opt.valList, transform=dataset.resizeNormalize((opt.width, opt.height)))
+val_dataset = dataset.listDataset(list_file=opt.valList, transform=dataset.resizeNormalize((opt.width, opt.height)))
 
 nclass = len(alphabet) + 3          # decoder的时候，需要的类别数,3 for SOS,EOS和blank 
 nc = 1
@@ -89,6 +92,13 @@ if opt.encoder:
 if opt.decoder:
     print('loading pretrained decoder model from %s' % opt.decoder)
     decoder.load_state_dict(torch.load(opt.decoder))
+if opt.loadModelEpoch > 0:
+    encoder_path = 'encoder_%d.pth' % opt.loadModelEpoch
+    print('loading pretrained encoder model from %s' % encoder_path)
+    encoder.load_state_dict(torch.load(encoder_path))
+    decoder_path = 'decoder_%d.pth' % opt.loadModelEpoch
+    print('loading pretrained decoder model from %s' % decoder_path)
+    decoder.load_state_dict(torch.load(decoder_path))
 
 image = torch.FloatTensor(opt.batchSize, 3, opt.height, opt.height)
 text = torch.LongTensor(opt.batchSize * 5)
@@ -172,12 +182,12 @@ def val(encoder, decoder, criterion, batchsize, dataset, teach_forcing=False, ma
             if pred == target:
                 n_correct += 1
 
-        if i % 4 == 0:                 # 每100次输出一次
+        if i % opt.valDisplayInterval == 0:
             texts = cpu_texts[0]
             print('pred:%-20s, gt: %-20s' % (decoded_words, texts))
 
     accuracy = n_correct / float(n_total)
-    print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    print('Val loss: %f, accuracy: %f' % (loss_avg.val(), accuracy))
 
 
 def trainBatch(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, teach_forcing_prob=1):
@@ -239,7 +249,7 @@ if __name__ == '__main__':
 
         # validate
         if epoch % opt.valInterval == 0:
-            val(encoder, decoder, criterion, 1, dataset=test_dataset, teach_forcing=False)  # batchsize:1
+            val(encoder, decoder, criterion, 1, dataset=val_dataset, teach_forcing=False)  # batchsize:1
 
         # save model
         if epoch % opt.saveInterval == 0:
