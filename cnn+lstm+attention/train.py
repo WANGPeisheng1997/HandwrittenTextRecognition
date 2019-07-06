@@ -16,7 +16,7 @@ import model
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainList',  default='label/train_label.txt')
-parser.add_argument('--valList',  default='label/validate_label.txt')
+parser.add_argument('--valList',  default='label/val_label.txt')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
 parser.add_argument('--epochs', type=int, default=501, help='number of epochs to train for')
@@ -93,10 +93,10 @@ if opt.decoder:
     print('loading pretrained decoder model from %s' % opt.decoder)
     decoder.load_state_dict(torch.load(opt.decoder))
 if opt.loadModelEpoch > 0:
-    encoder_path = 'encoder_%d.pth' % opt.loadModelEpoch
+    encoder_path = 'model/encoder_%d.pth' % opt.loadModelEpoch
     print('loading pretrained encoder model from %s' % encoder_path)
     encoder.load_state_dict(torch.load(encoder_path))
-    decoder_path = 'decoder_%d.pth' % opt.loadModelEpoch
+    decoder_path = 'model/decoder_%d.pth' % opt.loadModelEpoch
     print('loading pretrained decoder model from %s' % decoder_path)
     decoder.load_state_dict(torch.load(decoder_path))
 
