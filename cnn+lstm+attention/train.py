@@ -228,7 +228,7 @@ if __name__ == '__main__':
             encoder.train()
             decoder.train()
             cost = trainBatch(encoder, decoder, criterion, encoder_optimizer, 
-                              decoder_optimizer, teach_forcing_prob=opt.teaching_forcing_prob)
+                              decoder_optimizer)
             loss_avg.add(cost)
             i += 1
 
