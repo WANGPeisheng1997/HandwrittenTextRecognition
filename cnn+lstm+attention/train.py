@@ -173,6 +173,7 @@ if __name__ == '__main__':
 
         # validate
         if epoch % opt.valInterval == 0:
+            print("Validation:")
             predict(encoder, decoder, criterion, opt.batchSize, dataset=val_dataset)
 
         # save model
