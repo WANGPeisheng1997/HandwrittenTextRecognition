@@ -1,10 +1,33 @@
+import argparse
 import torch
 import torch.utils.data
 import src.utils as utils
 from src.utils import alphabet
 from src.utils import strLabelConverterForAttention as converter
+import src.dataset as dataset
+import model
 
-def predict(encoder, decoder, criterion, batchsize, dataset, max_iter=100, workers=2, max_width=53):
+parser = argparse.ArgumentParser()
+parser.add_argument('--testList',  default='label/test_label.txt')
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
+parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
+
+parser.add_argument('--cuda', action='store_true', help='enables cuda', default=True)
+parser.add_argument('--gpuid', type=int, default=0, help='which GPU to use')
+
+parser.add_argument('--height', type=int, default=32, help='the height of the input image to network')
+parser.add_argument('--width', type=int, default=208, help='the width of the input image to network')
+
+parser.add_argument('--encoder', type=str, default='', help="path to encoder (to continue training)")
+parser.add_argument('--decoder', type=str, default='', help='path to decoder (to continue training)')
+parser.add_argument('--loadModelEpoch', type=int, default=0, help='load model from epoch n to continue training, override the previous two')
+opt = parser.parse_args()
+
+if opt.cuda:
+    torch.cuda.set_device(opt.gpuid)
+
+
+def predict(encoder, decoder, criterion, batchsize, dataset, workers=2):
     for e, d in zip(encoder.parameters(), decoder.parameters()):
         e.requires_grad = False
         d.requires_grad = False
@@ -13,15 +36,15 @@ def predict(encoder, decoder, criterion, batchsize, dataset, max_iter=100, worke
 
     data_loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=batchsize, num_workers=workers)
     iterator = iter(data_loader)
-    max_iter = min(max_iter, len(data_loader))
 
     n_correct = 0  # correct characters (including EOS)
     n_total = 0  # total characters (including EOS)
+    n_current = 0 # current position
     loss_avg = utils.averager()
 
     EOS_TOKEN = 1  # end of sequence
 
-    for _ in range(max_iter):
+    for _ in range(len(data_loader)):
         data = iterator.next()
         cpu_images, cpu_texts = data
         b = cpu_images.size(0)
@@ -65,7 +88,6 @@ def predict(encoder, decoder, criterion, batchsize, dataset, max_iter=100, worke
 
         loss_avg.add(loss)
 
-        # 计算正确个数
         for count in range(batchsize):
             n_total += len(cpu_texts[count]) + 1  # EOS included
             for pred, target in zip(decoded_labels[count], target_variable[1:,count]):
@@ -73,7 +95,39 @@ def predict(encoder, decoder, criterion, batchsize, dataset, max_iter=100, worke
                     n_correct += 1
 
             texts = cpu_texts[count]
-            print('Pred:%-20s, GT: %-20s' % (decoded_words[count], texts))
+            print('%d Pred:%-20s, GT: %-20s' % (n_current, decoded_words[count], texts))
+            n_current += 1
 
     accuracy = n_correct / float(n_total)
-    print('Loss: %f, accuracy: %f' % (loss_avg.val(), accuracy))
+    print('Loss: %f, Accuracy: %f' % (loss_avg.val(), accuracy))
+
+
+if __name__ == '__main__':
+    test_dataset = dataset.listDataset(list_file=opt.testList, transform=dataset.resizeNormalize((opt.width, opt.height)))
+    nclass = len(alphabet) + 3
+    nc = 1
+    criterion = torch.nn.NLLLoss()
+    encoder = model.encoder(opt.height, nc=nc, nh=256)
+    decoder = model.decoder(nh=256, nclass=nclass, dropout_p=0.1)
+
+    if opt.encoder:
+        print('loading pretrained encoder model from %s' % opt.encoder)
+        encoder.load_state_dict(torch.load(opt.encoder))
+    if opt.decoder:
+        print('loading pretrained decoder model from %s' % opt.decoder)
+        decoder.load_state_dict(torch.load(opt.decoder))
+    if opt.loadModelEpoch > 0:
+        encoder_path = 'model/encoder_%d.pth' % opt.loadModelEpoch
+        print('loading pretrained encoder model from %s' % encoder_path)
+        encoder.load_state_dict(torch.load(encoder_path))
+        decoder_path = 'model/decoder_%d.pth' % opt.loadModelEpoch
+        print('loading pretrained decoder model from %s' % decoder_path)
+        decoder.load_state_dict(torch.load(decoder_path))
+
+    if opt.cuda:
+        encoder.cuda()
+        decoder.cuda()
+        criterion = criterion.cuda()
+
+    print("Testing:")
+    predict(encoder, decoder, criterion, opt.batchSize, dataset=test_dataset)
