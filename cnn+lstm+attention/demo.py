@@ -1,6 +1,6 @@
 import torch
 from torch.autograd import Variable
-from PIL import Image
+from PIL import Image, ImageOps
 
 from src.utils import alphabet
 import src.dataset
@@ -54,6 +54,12 @@ converter = src.utils.strLabelConverterForAttention(alphabet)
 transformer = src.dataset.resizeNormalize((opt.width, opt.height))
 
 image = Image.open(img_path).convert('L')
+image = ImageOps.invert(image)
+data = list(image.getdata())
+a = sorted(data)[int(len(data) * 0.3)]
+b = max(data)
+image = image.point(lambda i: (i - a) / (b - a) * 255.0 if i > a else 0)
+image = ImageOps.invert(image)
 w = image.size[0]
 h = image.size[1]
 image = image.resize((int(w/h*32.0), 32))
