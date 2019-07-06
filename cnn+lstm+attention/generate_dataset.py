@@ -3,7 +3,8 @@ import os, random
 import numpy as np
 
 train_set_size = 3200
-test_set_size = 64
+val_set_size = 64
+test_set_size = 1600
 
 characters = os.listdir('character')
 chars = [] # the gt char of each image
@@ -14,34 +15,24 @@ for file_name in characters:
     images.append(image)
     chars.append(char)
 
-train_label_file = open('label/train_label.txt', 'w')
 
-for step in range(train_set_size):
-    new_image = np.ones((28, 182)) * 255
-    digit_num = random.randint(2, 8)
-    path = 'dataset/train/' + str(step) + '.png'
-    train_label_file.write(path + ' ')
-    for i in range(digit_num):
-        c = random.randint(0, 39)
-        new_image[:, i * 22:i * 22 + 28] = images[c]
-        train_label_file.write(str(chars[c]))
-    scipy.misc.toimage(new_image, high=255, low=0, cmin=0, cmax=255).save(path)
-    train_label_file.write('\n')
+def data_generation(phase, size):
+    label_file = open('label/%s_label.txt' % phase, 'w')
+    for step in range(size):
+        new_image = np.ones((28, 182)) * 255
+        digit_num = random.randint(2, 8)
+        path = 'dataset/%s/' % phase + str(step) + '.png'
+        label_file.write(path + ' ')
+        for i in range(digit_num):
+            c = random.randint(0, 39)
+            new_image[:, i * 22:i * 22 + 28] = images[c]
+            label_file.write(str(chars[c]))
+        scipy.misc.toimage(new_image, high=255, low=0, cmin=0, cmax=255).save(path)
+        label_file.write('\n')
 
-train_label_file.close()
+    label_file.close()
 
-test_label_file = open('label/test_label.txt', 'w')
 
-for step in range(test_set_size):
-    new_image = np.ones((28, 182)) * 255
-    digit_num = random.randint(2, 8)
-    path = 'dataset/test/' + str(step) + '.png'
-    test_label_file.write(path + ' ')
-    for i in range(digit_num):
-        c = random.randint(0, 39)
-        new_image[:, i * 22:i * 22 + 28] = images[c]
-        test_label_file.write(str(chars[c]))
-    scipy.misc.toimage(new_image, high=255, low=0, cmin=0, cmax=255).save(path)
-    test_label_file.write('\n')
-
-test_label_file.close()
+data_generation('train', train_set_size)
+data_generation('val', val_set_size)
+data_generation('test', test_set_size)
